@@ -3,98 +3,80 @@ package main
 import (
 	"errors"
 	"fmt"
-	"strconv"
-	"encoding/json"
-	
+	//"strconv"
+	//"encoding/json"
+
 	"github.com/hyperledger/fabric/core/chaincode/shim"
 )
 
 type SimpleChaincode struct {
 }
 
-var marbleIndexStr = "_marbleindex"				//name for the key/value that will store a list of all known marbles
-
-
 func (t *SimpleChaincode) Init(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
-	var Aval int
+	var A string    // Entities
+	//var Aval string // Asset holdings
 	var err error
 
-	Aval, err = strconv.Atoi(args[0])
-	if err != nil {
-		return nil, errors.New("Expecting integer value for asset holding")
+	if len(args) != 2 {
+		return nil, errors.New("Incorrect number of arguments. Expecting 2")
 	}
-	err = stub.PutState("abc", []byte(strconv.Itoa(Aval)))				//making a test var "abc", I find it handy to read/write to it right away to test the network
+
+	A = args[0]
+	str := `{"name": "` + string(args[1]) + `"}`
+	err = stub.PutState(A, []byte(str))									//store marble with id as key
 	if err != nil {
 		return nil, err
 	}
 	
-	var empty []string
-	jsonAsBytes, _ := json.Marshal(empty)								//marshal an emtpy array of strings to clear the index
-	err = stub.PutState(marbleIndexStr, jsonAsBytes)
-	if err != nil {
-		return nil, err
-	}
-
 	return nil, nil
 }
 
 func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
-	fmt.Println("invoke is running " + function)
 
-	// Handle different functions
-	if function == "init" {													//initialize the chaincode state, used as reset
-		return t.Init(stub, "init", args)
-	} else if function == "add_name" {									//create a new marble
-		return t.add_name(stub, args)
-	}
-	
-	fmt.Println("invoke did not find func: " + function)					//error
-
-	return nil, errors.New("Received unknown function invocation")
-}
-
-func (t *SimpleChaincode) add_name(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+	var A string    // Entities
+	//var Aval int // Asset holdings
+	//var X int          // Transaction value
 	var err error
 
-	name := args[0]
-
-	//get the name index
-	marblesAsBytes, err := stub.GetState(marbleIndexStr)
-	if err != nil {
-		return nil, errors.New("Failed to get name index")
+	if len(args) != 2 {
+		return nil, errors.New("Incorrect number of arguments. Expecting 2")
 	}
-	var marbleIndex []string
-	json.Unmarshal(marblesAsBytes, &marbleIndex)							//un stringify it aka JSON.parse()
-	
-	//append
-	marbleIndex = append(marbleIndex, name)									//add marble name to index list
-	fmt.Println("! marble index: ", marbleIndex)
-	jsonAsBytes, _ := json.Marshal(marbleIndex)
-	err = stub.PutState(marbleIndexStr, jsonAsBytes)						//store name of marble
 
-	fmt.Println("- end init marble")
+	A = args[0]
+//	B = args[1]
+
+str := `{"name": "` + string(args[1]) + `"}`
+	err = stub.PutState(A, []byte(str))									//store marble with id as key
+	if err != nil {
+		return nil, err
+	}
+
 	return nil, nil
 }
+
 func (t *SimpleChaincode) Query(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
+	var A string // Entities
+	var err error
 
-	name := args[0]
-
-	//get the name index
-	marblesAsBytes, err := stub.GetState(marbleIndexStr)
-	if err != nil {
-		return nil, errors.New("Failed to get name index")
+	if len(args) != 1 {
+		return nil, errors.New("Incorrect number of arguments. Expecting name of the person to query")
 	}
-	var marbleIndex []string
-	json.Unmarshal(marblesAsBytes, &marbleIndex)							//un stringify it aka JSON.parse()
-	
-	//append
-	marbleIndex = append(marbleIndex, name)									//add marble name to index list
 
-		fmt.Println("marbleIndex",marbleIndex)
-	
-	return nil, nil
+	A = args[0]
+
+	// Get the state from the ledger
+	Avalbytes, err := stub.GetState(A)
+	if err != nil {
+		jsonResp := "{\"Error\":\"Failed to get state for " + A + "\"}"
+		return nil, errors.New(jsonResp)
+	}
+
+
+	jsonResp := "{\"Name\":\"" + A + "\",\"value\":\"" + string(Avalbytes) + "\"}"
+	fmt.Printf("Query Response:%s\n", jsonResp)
+
+	return Avalbytes, nil
 }
-
 
 func main() {
 	err := shim.Start(new(SimpleChaincode))
