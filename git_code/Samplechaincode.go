@@ -10,7 +10,7 @@ import (
 	"github.com/hyperledger/fabric/core/chaincode/shim"
 )
 
-type SampleChaincode struct {
+type SimpleChaincode struct {
 }
 
 var customerIndexStr = "_customerdetails"
@@ -24,7 +24,7 @@ Details string `json:"Details"`
 
 }
 
-func (t *SampleChaincode) Init(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
+func (t *SimpleChaincode) Init(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
 fmt.Println("init is running")
 	var ID, Name, Details string    
 		var err error
@@ -76,7 +76,7 @@ fmt.Println("deploying is result",customerIndexStr)
  
 //Invoke Method
  
-func (t *SampleChaincode) Invoke(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
+func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
 
 
   
@@ -187,7 +187,7 @@ func (t *SampleChaincode) Invoke(stub shim.ChaincodeStubInterface, function stri
 //Update
 
 
-func (t *SampleChaincode)update(stub shim.ChaincodeStubInterface, args []string) ([]byte, error){
+func (t *SimpleChaincode)update(stub shim.ChaincodeStubInterface, args []string) ([]byte, error){
 var Index, Name, Details string 
 var err error
 
@@ -210,7 +210,7 @@ return nil, nil
 
 
 // Deletes an entity from state
-func (t *SampleChaincode) delete(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+func (t *SimpleChaincode) delete(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 	fmt.Println("Delete is running--")
 	if len(args) != 1 {
 		return nil, errors.New("Incorrect number of arguments. Expecting 1")
@@ -229,74 +229,89 @@ func (t *SampleChaincode) delete(stub shim.ChaincodeStubInterface, args []string
 
 
 //Query
-func (t *SampleChaincode) Query(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
+func (t *SimpleChaincode) Query(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
     fmt.Println("query is running")
-	var Index, jsonResp string
-		if function == "query" {
+	
 		
+		
+		var Index, jsonResp string
+	//var err error
+	
+	if function == "query" {
+		//return nil, errors.New("Invalid query function name. Expecting \"query\"")
+	
+
 	Index = args[0]
 	valAsbytes, err := stub.GetState(Index)									//get the var from chaincode state
-  if err != nil {
+	if err != nil {
 		jsonResp = "{\"Error\":\"Failed to get state for " + Index + "\"}"
 		return nil, errors.New(jsonResp)
 	}
-	
-        res := Customer{}
-		json.Unmarshal(valAsbytes, &res)
-		
-		fmt.Printf("res data:",res)
-	
+
 	return valAsbytes, nil													//send it onward
 	
+	
 }
-
-if function == "queryall" {
+		
+	if function == "queryall" {
 
 //========================================
 	//for loop for incrementing the index
 	//===========================
 	
-	customerAsBytes, err := stub.GetState(customerIndexStr)
+	//get the math index
+	
+	customerIndexStr, err := stub.GetState(mathIndexStr)
 	if err != nil {
 		//return fail, errors.New("Failed to get math index")
 	}
 	
 	
-	var customerIndex []string
+	var mathIndex []string
+	var data []byte
 	
-	json.Unmarshal(customerAsBytes, &customerIndex)
-	//fmt.Printf("customerAsBytes:",customerAsBytes)
+	json.Unmarshal(customerIndexStr, &mathIndex)
+	//fmt.Printf("customerIndexStr:",customerIndexStr)
 	
-	for i:= range customerIndex{													//iter through all the math		
+	for i:= range mathIndex{													//iter through all the math		
 		
-		customerAsBytes, err := stub.GetState(customerIndex[i])						//grab this math
+		customerIndexStr, err := stub.GetState(mathIndex[i])						//grab this math
 		if err != nil {
 			//return fail, errors.New("Failed to get ")
 		}
-		fmt.Printf("customerIndex:",customerIndex[i])
+		fmt.Printf("mathIndex:",mathIndex[i])
 			
-		res := Customer{}
-		json.Unmarshal(customerAsBytes, &res)										//un stringify it aka JSON.parse()
+		res := Math{}
+		json.Unmarshal(customerIndexStr, &res)										//un stringify it aka JSON.parse()
 		fmt.Printf("res data:",res)
 		
-		jsonResp := "{\"Index\":\"" + res.Index + "\",\"ID\":\"" + res.ID + "\",\"Name\":\"" + res.Name + "\",\"Details\":\"" + res.Details + "\"}"
+		jsonResp := "{\"Index\":\"" + res.Index + "\",\"Avalue\":\"" + res.A + "\",\"Bvalue\":\"" + res.B + "\"}"
 	
 	    fmt.Printf("Query Response:%s\n", jsonResp)
+		data = []byte(jsonResp)
 	
-		
+		//return customerIndexStr, nil					
+	//============================
 }
 
-}
+return data, nil
+
+//return customerIndexStr, nil
+}			
+		
+		
+
+
 return nil, nil
 
 	}
  
 func main() {
-    err := shim.Start(new(SampleChaincode))
+    err := shim.Start(new(SimpleChaincode))
     if err != nil {
-        fmt.Println("Could not start SampleChaincode")
+        fmt.Println("Could not start SimpleChaincode")
     } else {
-        fmt.Println("SampleChaincode successfully started")
+        fmt.Println("SimpleChaincode successfully started")
     }
  
 }
